@@ -16,8 +16,14 @@ export function AuthGate() {
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      document.title = mode === "register" ? "Регистрация" : "Вход";
+    }
+  }, [user, mode]);
+
   if (!ready) {
-    return <div className="min-h-full bg-slate-950" />;
+    return <div className="min-h-full bg-background" />;
   }
 
   if (!user) {

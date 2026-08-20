@@ -15,14 +15,31 @@ import {
 } from "@/components/icons/icons";
 import {
   channels,
+  formatMoney,
   kpis,
   navItems,
   orders,
   products,
   salesByWeek,
-  type OrderStatus,
+  statusClass,
+  statusLabel,
 } from "@/lib/data";
 import { initialsFromName, type PublicUser } from "@/lib/auth";
+import { useDocumentTitle } from "@/lib/page-title";
+import { SettingsPanel } from "@/components/settingsPanel/settings-panel";
+import { OrdersPanel } from "@/components/ordersPanel/orders-panel";
+import { CustomersPanel } from "@/components/customersPanel/customers-panel";
+import { AnalyticsPanel } from "@/components/analyticsPanel/analytics-panel";
+
+type Section = "overview" | "orders" | "customers" | "analytics" | "settings";
+
+const sectionTitles: Record<Section, string> = {
+  overview: "Дашборд",
+  orders: "Заказы",
+  customers: "Клиенты",
+  analytics: "Аналитика",
+  settings: "Настройки",
+};
 
 const iconMap = {
   grid: IconGrid,
@@ -31,26 +48,6 @@ const iconMap = {
   chart: IconChart,
   gear: IconGear,
 };
-
-const statusLabel: Record<OrderStatus, string> = {
-  paid: "Оплачен",
-  pending: "Ожидает",
-  refunded: "Возврат",
-};
-
-const statusClass: Record<OrderStatus, string> = {
-  paid: "bg-emerald-500/15 text-emerald-300",
-  pending: "bg-amber-500/15 text-amber-300",
-  refunded: "bg-rose-500/15 text-rose-300",
-};
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 export function DashboardShell({
   user,
@@ -62,6 +59,8 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<"7d" | "30d" | "90d">("30d");
+  const [section, setSection] = useState<Section>("overview");
+  useDocumentTitle(sectionTitles[section]);
 
   const filteredOrders = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -93,7 +92,7 @@ export function DashboardShell({
   }, []);
 
   return (
-    <div className="flex min-h-full bg-slate-950 text-slate-100">
+    <div className="flex min-h-full bg-background text-foreground">
       {sidebarOpen ? (
         <button
           type="button"
@@ -104,7 +103,7 @@ export function DashboardShell({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-white/10 bg-slate-950/95 p-5 backdrop-blur transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-border bg-background/95 p-5 backdrop-blur transition-transform lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -114,22 +113,28 @@ export function DashboardShell({
           </div>
           <div>
             <p className="text-sm font-semibold tracking-wide">Nexus</p>
-            <p className="text-xs text-slate-400">Analytics dashboard</p>
+            <p className="text-xs text-muted">Analytics dashboard</p>
           </div>
         </div>
 
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = iconMap[item.icon];
-            const active = item.href === "#overview";
+            const id = item.href.slice(1) as Section;
+            const active = section === id;
             return (
               <a
                 key={item.href}
                 href={item.href}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setSection(id);
+                  setSidebarOpen(false);
+                }}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                   active
-                    ? "bg-indigo-500/15 text-white"
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    ? "bg-indigo-500/15 text-foreground"
+                    : "text-muted hover:bg-foreground/5 hover:text-foreground"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -139,19 +144,19 @@ export function DashboardShell({
           })}
         </nav>
 
-        <div className="mt-10 rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-transparent p-4">
+        <div className="mt-10 rounded-2xl border border-border bg-gradient-to-br from-indigo-500/20 to-transparent p-4">
           <p className="text-sm font-medium">Pro-отчёты</p>
-          <p className="mt-1 text-xs leading-5 text-slate-400">
+          <p className="mt-1 text-xs leading-5 text-muted">
             Экспорт CSV, алерты и совместный доступ к дашборду.
           </p>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-slate-950/80 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
           <button
             type="button"
-            className="rounded-lg p-2 text-slate-300 hover:bg-white/5 lg:hidden"
+            className="rounded-lg p-2 text-subtle hover:bg-foreground/5 lg:hidden"
             onClick={() => setSidebarOpen(true)}
             aria-label="Открыть меню"
           >
@@ -159,16 +164,16 @@ export function DashboardShell({
           </button>
 
           <label className="relative min-w-0 flex-1">
-            <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Поиск заказов, клиентов…"
-              className="w-full rounded-xl border border-white/10 bg-slate-900 py-2 pl-9 pr-3 text-sm outline-none placeholder:text-slate-500 focus:border-indigo-400"
+              className="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm outline-none placeholder:text-muted focus:border-indigo-400"
             />
           </label>
 
-          <div className="hidden items-center gap-1 rounded-xl border border-white/10 p-1 sm:flex">
+          <div className="hidden items-center gap-1 rounded-xl border border-border p-1 sm:flex">
             {(["7d", "30d", "90d"] as const).map((item) => (
               <button
                 key={item}
@@ -177,7 +182,7 @@ export function DashboardShell({
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                   range === item
                     ? "bg-indigo-500 text-white"
-                    : "text-slate-400 hover:text-white"
+                    : "text-muted hover:text-foreground"
                 }`}
               >
                 {item}
@@ -187,25 +192,25 @@ export function DashboardShell({
 
           <button
             type="button"
-            className="relative rounded-xl border border-white/10 p-2 hover:bg-white/5"
+            className="relative rounded-xl border border-border p-2 hover:bg-foreground/5"
             aria-label="Уведомления"
           >
             <IconBell className="h-5 w-5" />
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-400" />
           </button>
 
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 py-1 pl-1 pr-2">
+          <div className="flex items-center gap-2 rounded-xl border border-border py-1 pl-1 pr-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-400/30 text-xs font-semibold">
               {initialsFromName(user.name)}
             </div>
             <div className="hidden sm:block">
               <p className="text-xs font-medium">{user.name}</p>
-              <p className="text-[11px] text-slate-400">{user.email}</p>
+              <p className="text-[11px] text-muted">{user.email}</p>
             </div>
             <button
               type="button"
               onClick={onLogout}
-              className="rounded-lg px-2 py-1 text-[11px] text-slate-400 hover:bg-white/5 hover:text-white"
+              className="rounded-lg px-2 py-1 text-[11px] text-muted hover:bg-foreground/5 hover:text-foreground"
             >
               Выйти
             </button>
@@ -213,9 +218,19 @@ export function DashboardShell({
         </header>
 
         <main className="flex-1 space-y-6 p-4 sm:p-6">
+          {section === "settings" ? (
+            <SettingsPanel />
+          ) : section === "orders" ? (
+            <OrdersPanel query={query} />
+          ) : section === "customers" ? (
+            <CustomersPanel query={query} />
+          ) : section === "analytics" ? (
+            <AnalyticsPanel query={query} range={range} />
+          ) : (
+            <>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Обзор продаж</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-muted">
               Метрики за выбранный период ({range}). Данные демонстрационные.
             </p>
           </div>
@@ -224,14 +239,14 @@ export function DashboardShell({
             {kpis.map((kpi) => (
               <article
                 key={kpi.label}
-                className="rounded-2xl border border-white/10 bg-slate-900/70 p-4"
+                className="rounded-2xl border border-border bg-surface p-4"
               >
-                <p className="text-sm text-slate-400">{kpi.label}</p>
+                <p className="text-sm text-muted">{kpi.label}</p>
                 <p className="mt-2 text-2xl font-semibold">{kpi.value}</p>
                 <div className="mt-3 flex items-center justify-between text-xs">
                   <span
                     className={`inline-flex items-center gap-1 ${
-                      kpi.positive ? "text-emerald-300" : "text-rose-300"
+                      kpi.positive ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"
                     }`}
                   >
                     {kpi.positive ? (
@@ -241,20 +256,20 @@ export function DashboardShell({
                     )}
                     {kpi.delta}
                   </span>
-                  <span className="text-slate-500">{kpi.hint}</span>
+                  <span className="text-muted">{kpi.hint}</span>
                 </div>
               </article>
             ))}
           </section>
 
           <section className="grid gap-4 xl:grid-cols-3">
-            <article className="rounded-2xl border border-white/10 bg-slate-900/70 p-5 xl:col-span-2">
+            <article className="rounded-2xl border border-border bg-surface p-5 xl:col-span-2">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-medium">Динамика выручки</h2>
-                  <p className="text-xs text-slate-400">Тысячи ₽ по дням недели</p>
+                  <p className="text-xs text-muted">Тысячи ₽ по дням недели</p>
                 </div>
-                <span className="rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs text-indigo-300">
+                <span className="rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs text-indigo-600 dark:text-indigo-300">
                   +18% к прошлой неделе
                 </span>
               </div>
@@ -287,7 +302,7 @@ export function DashboardShell({
                         x={x}
                         y={chartHeight + 22}
                         textAnchor="middle"
-                        className="fill-slate-500 text-[11px]"
+                        className="fill-muted text-[11px]"
                       >
                         {d.label}
                       </text>
@@ -297,9 +312,9 @@ export function DashboardShell({
               </div>
             </article>
 
-            <article className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
+            <article className="rounded-2xl border border-border bg-surface p-5">
               <h2 className="text-sm font-medium">Каналы трафика</h2>
-              <p className="text-xs text-slate-400">Доля привлечения</p>
+              <p className="text-xs text-muted">Доля привлечения</p>
               <div className="mt-6 flex items-center gap-6">
                 <svg viewBox="0 0 42 42" className="h-28 w-28 -rotate-90">
                   {donutSegments.map((segment) => (
@@ -323,8 +338,8 @@ export function DashboardShell({
                         className="h-2.5 w-2.5 rounded-full"
                         style={{ backgroundColor: channel.color }}
                       />
-                      <span className="text-slate-300">{channel.name}</span>
-                      <span className="ml-auto text-slate-500">{channel.value}%</span>
+                      <span className="text-subtle">{channel.name}</span>
+                      <span className="ml-auto text-muted">{channel.value}%</span>
                     </li>
                   ))}
                 </ul>
@@ -335,17 +350,17 @@ export function DashboardShell({
           <section className="grid gap-4 xl:grid-cols-3">
             <article
               id="orders"
-              className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 xl:col-span-2"
+              className="overflow-hidden rounded-2xl border border-border bg-surface xl:col-span-2"
             >
               <div className="flex items-center justify-between px-5 py-4">
                 <h2 className="text-sm font-medium">Последние заказы</h2>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted">
                   {filteredOrders.length} из {orders.length}
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[560px] text-left text-sm">
-                  <thead className="border-y border-white/10 text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="border-y border-border text-xs uppercase tracking-wide text-muted">
                     <tr>
                       <th className="px-5 py-3 font-medium">ID</th>
                       <th className="px-5 py-3 font-medium">Клиент</th>
@@ -356,12 +371,12 @@ export function DashboardShell({
                   </thead>
                   <tbody>
                     {filteredOrders.map((order) => (
-                      <tr key={order.id} className="border-b border-white/5 last:border-0">
-                        <td className="px-5 py-3 font-mono text-xs text-slate-400">
+                      <tr key={order.id} className="border-b border-border last:border-0">
+                        <td className="px-5 py-3 font-mono text-xs text-muted">
                           {order.id}
                         </td>
                         <td className="px-5 py-3">{order.customer}</td>
-                        <td className="px-5 py-3 text-slate-300">{order.product}</td>
+                        <td className="px-5 py-3 text-subtle">{order.product}</td>
                         <td className="px-5 py-3">{formatMoney(order.amount)}</td>
                         <td className="px-5 py-3">
                           <span
@@ -374,7 +389,7 @@ export function DashboardShell({
                     ))}
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-5 py-8 text-center text-slate-500">
+                        <td colSpan={5} className="px-5 py-8 text-center text-muted">
                           Ничего не найдено
                         </td>
                       </tr>
@@ -384,27 +399,29 @@ export function DashboardShell({
               </div>
             </article>
 
-            <article className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
+            <article className="rounded-2xl border border-border bg-surface p-5">
               <h2 className="text-sm font-medium">Топ продукты</h2>
               <ul className="mt-4 space-y-4">
                 {products.map((product) => (
                   <li key={product.name}>
                     <div className="flex items-center justify-between text-sm">
                       <span>{product.name}</span>
-                      <span className="text-slate-400">{product.revenue}</span>
+                      <span className="text-muted">{product.revenue}</span>
                     </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10">
                       <div
                         className="h-full rounded-full bg-indigo-400"
                         style={{ width: `${Math.min(100, product.sales / 12)}%` }}
                       />
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">{product.sales} продаж</p>
+                    <p className="mt-1 text-xs text-muted">{product.sales} продаж</p>
                   </li>
                 ))}
               </ul>
             </article>
           </section>
+            </>
+          )}
         </main>
       </div>
     </div>
