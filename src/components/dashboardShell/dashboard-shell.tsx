@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   IconBag,
@@ -107,7 +108,7 @@ export function DashboardShell({
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-8 flex items-center gap-3">
+        <Link href="/" className="mb-8 flex items-center gap-3 rounded-xl transition hover:opacity-80">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500 font-semibold">
             N
           </div>
@@ -115,7 +116,7 @@ export function DashboardShell({
             <p className="text-sm font-semibold tracking-wide">Nexus</p>
             <p className="text-xs text-muted">Analytics dashboard</p>
           </div>
-        </div>
+        </Link>
 
         <nav className="space-y-1">
           {navItems.map((item) => {
