@@ -35,7 +35,7 @@ import { AnalyticsPanel } from "@/components/analyticsPanel/analytics-panel";
 type Section = "overview" | "orders" | "customers" | "analytics" | "settings";
 
 const sectionTitles: Record<Section, string> = {
-  overview: "Дашборд",
+  overview: "Дашборд: обзор продаж и аналитики",
   orders: "Заказы",
   customers: "Клиенты",
   analytics: "Аналитика",
